@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>15秒鬼ごっこ</title>
+
+<style>
+body {
+    background: #ffffaa;
+    text-align: center;
+    font-family: sans-serif;
+}
+
+#game {
+    width: 500px;
+    height: 300px;
+    border: 3px solid black;
+    margin: auto;
+    position: relative;
+}
+
+#player, #enemy, #trap {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+}
+
+#player { background: blue; }
+#enemy { background: red; }
+#trap { background: yellow; border-radius: 50%; width: 25px; height: 25px; }
+
+#timer {
+    font-size: 30px;
+}
+
+#startBtn {
+    font-size: 18px;
+    padding: 10px 20px;
+    margin-bottom: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>15秒鬼ごっこ</h2>
+
+<div id="intro" style="
+    width: 400px;
+    margin: 20px auto;
+    padding: 15px;
+    border: 2px solid black;
+    background-color: #ffffdd;
+    font-size: 16px;
+    border-radius: 10px;
+">
+    <h3>ゲームの説明</h3>
+    <p>
+        <b>15秒鬼ごっこ</b>は、15秒以内に赤い敵に触れるゲームです。<br>
+        黄色の罠に触れるとスタート地点に戻されます。<br>
+        <b>操作方法:</b> WASDキーで移動、Shiftキーで速く動けます。<br>
+        最速で捕まえた時間がベストスコアとして保存されます。
+    </p>
+    <button onclick="document.getElementById('intro').style.display='none'">閉じる</button>
+</div>
+
+<button id="startBtn">ゲーム開始</button>
+<p id="countdown"></p>
+<p id="timer">15</p>
+<p id="best">BEST: -</p>
+<button onclick="resetBest()">ベスト記録リセット</button>
+
+<div id="game">
+    <div id="player"></div>
+    <div id="enemy"></div>
+    <div id="trap"></div>
+</div>
+
+<script>
+let px = 100, py = 100;
+let ex, ey, tx, ty;
+let time = 15;
+
+const player = document.getElementById("player");
+const enemy = document.getElementById("enemy");
+const trap = document.getElementById("trap");
+
+let timerInterval, enemyInterval, trapInterval;
+
+// ベストスコア表示
+let best = localStorage.getItem("best");
+if (best !== null) document.getElementById("best").textContent = "BEST: " + best + "秒";
+
+// ゲーム開始ボタン
+document.getElementById("startBtn").addEventListener("click", startCountdown);
+
+function startCountdown() {
+    document.getElementById("startBtn").style.display = "none";
+    let count = 3;
+    const countdownEl = document.getElementById("countdown");
+    countdownEl.textContent = count;
+
+    let cdInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownEl.textContent = count;
+        } else {
+            clearInterval(cdInterval);
+            countdownEl.textContent = "";
+            startGame();
+        }
+    }, 1000);
+}
+
+// ゲーム開始
+function startGame() {
+    // 敵の初期位置（プレイヤーから離す）
+    do { ex = Math.random() * 470; ey = Math.random() * 270; } 
+    while (Math.abs(px - ex) < 50 && Math.abs(py - ey) < 50);
+    enemy.style.left = ex + "px";
+    enemy.style.top = ey + "px";
+
+    // 罠の初期位置（プレイヤーから離す）
+    do { tx = Math.random() * 470; ty = Math.random() * 270; } 
+    while (Math.abs(px - tx) < 80 && Math.abs(py - ty) < 80);
+    trap.style.left = tx + "px";
+    trap.style.top = ty + "px";
+
+    // タイマー
+    timerInterval = setInterval(function() {
+        time--;
+        document.getElementById("timer").textContent = time;
+        if (time <= 0) {
+            alert("時間切れ");
+            location.reload();
+        }
+    }, 1000);
+
+    // 敵AI
+    enemyInterval = setInterval(function() {
+        let enemySpeed = 2;
+        if (px > ex) ex -= enemySpeed;
+        if (px < ex) ex += enemySpeed;
+        if (py > ey) ey -= enemySpeed;
+        if (py < ey) ey += enemySpeed;
+
+        ex = Math.max(0, Math.min(ex, 470));
+        ey = Math.max(0, Math.min(ey, 270));
+
+        enemy.style.left = ex + "px";
+        enemy.style.top = ey + "px";
+    }, 50);
+
+    // 罠AI
+    trapInterval = setInterval(function() {
+        let trapSpeed = 5;
+        if (px > tx) tx += trapSpeed;
+        if (px < tx) tx -= trapSpeed;
+        if (py > ty) ty += trapSpeed;
+        if (py < ty) ty -= trapSpeed;
+
+        tx = Math.max(0, Math.min(tx, 470));
+        ty = Math.max(0, Math.min(ty, 270));
+
+        trap.style.left = tx + "px";
+        trap.style.top = ty + "px";
+    }, 50);
+}
+
+// キー入力（WASD + Shift）
+document.addEventListener("keydown", function(e) {
+    if (!timerInterval) return; // ゲーム開始前は無効
+
+    let key = e.key.toLowerCase();
+    let speed = 10;
+    if (e.shiftKey) speed *= 1.5;
+
+    if (key == "w") py -= speed;
+    if (key == "s") py += speed;
+    if (key == "a") px -= speed;
+    if (key == "d") px += speed;
+
+    px = Math.max(0, Math.min(px, 470));
+    py = Math.max(0, Math.min(py, 270));
+
+    player.style.left = px + "px";
+    player.style.top = py + "px";
+
+    check();
+});
+
+// 当たり判定
+function check() {
+    // 敵に当たったらクリア
+    if (Math.abs(px - ex) < 30 && Math.abs(py - ey) < 30) {
+        let score = 15 - time;
+        let best = localStorage.getItem("best");
+        if (!best || score < best) localStorage.setItem("best", score);
+        alert(score + "秒で捕まえた！");
+        location.reload();
+    }
+
+    // 罠判定
+    let trapRect = trap.getBoundingClientRect();
+    let playerRect = player.getBoundingClientRect();
+    if (
+        playerRect.left < trapRect.right &&
+        playerRect.right > trapRect.left &&
+        playerRect.top < trapRect.bottom &&
+        playerRect.bottom > trapRect.top
+    ) {
+        px = 100;
+        py = 100;
+        player.style.left = px + "px";
+        player.style.top = py + "px";
+
+        do { tx = Math.random() * 470; ty = Math.random() * 270; } 
+        while (Math.abs(px - tx) < 80 && Math.abs(py - ty) < 80);
+        trap.style.left = tx + "px";
+        trap.style.top = ty + "px";
+    }
+}
+
+// ベスト記録リセット
+function resetBest() {
+    if (confirm("ベスト記録をリセットしますか？")) {
+        localStorage.removeItem("best");
+        document.getElementById("best").textContent = "BEST: -";
+    }
+}
+</script>
+
+<a href="index.html">
+    <button>戻る</button>
+</a>
+
+</body>
+</html>

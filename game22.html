@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>シューティングhard</title>
+
+<style>
+body { background: #111; text-align: center; color: white; font-family: sans-serif; }
+#game { width: 500px; height: 600px; margin: auto; background: #222; position: relative; overflow: hidden; }
+#player { position: absolute; width: 40px; height: 40px; background: blue; bottom: 20px; left: 230px; }
+.enemy { position: absolute; width: 40px; height: 40px; background: red; }
+.boss { position: absolute; width: 120px; height: 80px; background: purple; top: 40px; }
+.bullet { position: absolute; background: yellow; border-radius: 50%; }
+.heal { position: absolute; width: 30px; height: 30px; background: lime; border-radius: 50%; }
+#score { position: absolute; top: 10px; right: 10px; font-size: 20px; }
+#life { position: absolute; top: 10px; left: 10px; font-size: 20px; }
+#gameover { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 50px; display: none; color: red; }
+#clear { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 50px; display: none; color: yellow; }
+#bossHPBar { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 200px; height: 20px; background: #555; border: 2px solid white; display: none; }
+#bossHPFill { width: 100%; height: 100%; background: red; }
+</style>
+</head>
+
+<body>
+<div id="game">
+    <div id="score">Score:0</div>
+    <div id="life">Life:3</div>
+    <div id="gameover">GAME OVER</div>
+    <div id="clear">[CLEAR!]</div>
+    <div id="bossHPBar"><div id="bossHPFill"></div></div>
+    <div id="player"></div>
+</div>
+
+<script>
+let game = document.getElementById("game");
+let player = document.getElementById("player");
+let bossHPBar = document.getElementById("bossHPBar");
+let bossHPFill = document.getElementById("bossHPFill");
+
+let px = 230;
+let bullets = [], enemies = [], heals = [], bossBullets = [];
+let score = 0, life = 3, gameOver = false;
+let boss = null, bossHP = 15;
+
+// --- ランキング機能 ---
+function updateRanking(score) {
+    let scores = JSON.parse(localStorage.getItem("ranking") || "[]");
+    scores.push(score);
+    scores.sort((a,b)=>b-a);
+    scores = scores.slice(0,5);
+    localStorage.setItem("ranking", JSON.stringify(scores));
+    alert("ランキング: " + scores.join(", "));
+}
+
+// --- キー操作 ---
+document.addEventListener("keydown", e => {
+    if (gameOver) return;
+    if (e.key == "ArrowLeft") px -= 20;
+    if (e.key == "ArrowRight") px += 20;
+    if (e.key == " ") shoot(15, 1);
+    if (e.key == "Shift") shoot(30, 1.5);
+    if (px < 0) px = 0;
+    if (px > 460) px = 460;
+    player.style.left = px + "px";
+});
+
+// --- プレイヤー弾 ---
+function shoot(size, damage) {
+    let b = document.createElement("div");
+    b.className = "bullet";
+    let x = px + 20 - size / 2, y = 520;
+    b.style.width = size+"px"; b.style.height = size+"px";
+    b.style.left = x+"px"; b.style.top = y+"px";
+    game.appendChild(b);
+    bullets.push({x,y,size,damage,el:b});
+}
+
+// --- 敵 ---
+function spawnEnemy() {
+    if (gameOver || boss) return;
+    let e = document.createElement("div"); e.className = "enemy";
+    let x = Math.random()*460;
+    e.style.left = x+"px"; e.style.top="0px";
+    game.appendChild(e); enemies.push({x, y:0, el:e});
+}
+setInterval(spawnEnemy,1000);
+
+// --- 回復アイテム ---
+function spawnHeal() {
+    if (gameOver) return;
+    let h = document.createElement("div"); h.className = "heal";
+    let x = Math.random()*470; h.style.left = x+"px"; h.style.top = "0px";
+    game.appendChild(h); heals.push({x, y:0, el:h});
+}
+setInterval(spawnHeal,86400000);
+
+// --- ボス ---
+function spawnBoss() {
+    if (boss) return;
+    let b = document.createElement("div"); b.className = "boss";
+    let x = 190; b.style.left = x+"px";
+    game.appendChild(b); boss={x,y:40,el:b}; bossHP=15;
+    bossHPBar.style.display="block"; bossHPFill.style.width="100%";
+}
+
+// --- ボス弾 ---
+function bossShoot() {
+    if (!boss) return;
+    let bx = boss.x + 50, by = boss.y + 80;
+    let b = document.createElement("div");
+    b.className="bullet"; b.style.width="15px"; b.style.height="15px";
+    b.style.background="orange"; b.style.left=bx+"px"; b.style.top=by+"px";
+    game.appendChild(b); bossBullets.push({x:bx, y:by, el:b});
+}
+setInterval(bossShoot,1000);
+
+// --- 当たり判定 ---
+function hit(b,e,w=40,h=40){return b.x<e.x+w && b.x+b.size>e.x && b.y<e.y+h && b.y+b.size>e.y;}
+
+// --- ゲームループ ---
+function gameLoop() {
+    if (gameOver) return;
+    if (score>=10000 && !boss) spawnBoss();
+
+    // 弾処理
+    for(let i=bullets.length-1;i>=0;i--){
+        let b=bullets[i]; b.y-=10; b.el.style.top=b.y+"px";
+        if(b.y+b.size<0){b.el.remove(); bullets.splice(i,1); continue;}
+        for(let j=enemies.length-1;j>=0;j--){let e=enemies[j]; if(hit(b,e)){b.el.remove(); e.el.remove(); bullets.splice(i,1); enemies.splice(j,1); score+=100; document.getElementById("score").innerText="Score:"+score; break;}}
+        if(boss && hit(b,boss,120,80)){b.el.remove(); bullets.splice(i,1); bossHP-=b.damage; bossHPFill.style.width=(bossHP/15*100)+"%"; if(bossHP<=0){boss.el.remove(); boss=null; score+=5000; document.getElementById("score").innerText="Score:"+score; bossHPBar.style.display="none"; document.getElementById("clear").style.display="block";}}
+    }
+
+    // 敵処理
+    for(let i=enemies.length-1;i>=0;i--){
+        let e=enemies[i]; e.y+=4; e.el.style.top=e.y+"px";
+        if(e.y>600){e.el.remove(); enemies.splice(i,1); continue;}
+        let py=player.offsetTop, px2=parseInt(player.style.left);
+        if(px2<e.x+40 && px2+40>e.x && py<e.y+40 && py+40>e.y){e.el.remove(); enemies.splice(i,1); life--; score-=100; document.getElementById("life").innerText="Life:"+life; document.getElementById("score").innerText="Score:"+score; if(life<=0){gameOver=true; document.getElementById("gameover").style.display="block"; updateRanking(score);}}
+    }
+
+    // 回復アイテム処理
+    for(let i=heals.length-1;i>=0;i--){
+        let h=heals[i]; h.y+=3; h.el.style.top=h.y+"px";
+        if(h.y>600){h.el.remove(); heals.splice(i,1); continue;}
+        let py=player.offsetTop, px2=parseInt(player.style.left);
+        if(px2<h.x+30 && px2+40>h.x && py<h.y+30 && py+40>h.y){h.el.remove(); heals.splice(i,1); life++; document.getElementById("life").innerText="Life:"+life;}
+    }
+
+    // ボス弾処理
+    for(let i=bossBullets.length-1;i>=0;i--){
+        let b=bossBullets[i]; b.y+=5; b.el.style.top=b.y+"px";
+        if(b.y>600){b.el.remove(); bossBullets.splice(i,1); continue;}
+        let py=player.offsetTop, px2=parseInt(player.style.left);
+        if(px2<b.x+15 && px2+40>b.x && py<b.y+15 && py+40>b.y){b.el.remove(); bossBullets.splice(i,1); life--; document.getElementById("life").innerText="Life:"+life; if(life<=0){gameOver=true; document.getElementById("gameover").style.display="block"; updateRanking(score);}}
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+<a href="index.html">
+<button>戻る</button>
+</a>
+
+</body>
+</html>

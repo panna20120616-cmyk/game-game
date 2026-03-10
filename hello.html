@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>確率操作運ゲー（成功確率版）</title>
+<style>
+body{
+  font-family:sans-serif;
+  text-align:center;
+  margin-top:50px;
+}
+button{
+  font-size:20px;
+  padding:10px 20px;
+}
+#failMessage{
+  color:red;
+  font-weight:bold;
+  margin-top:20px;
+}
+</style>
+</head>
+<body>
+
+<h1>確率操作運ゲー（成功確率版）</h1>
+<p>上キー↑で成功確率↑、下キー↓で成功確率↓</p>
+<p>現在の成功確率: <span id="chance">99%</span></p>
+<button id="btn">押す！</button>
+<p id="result"></p>
+
+<p id="failMessage"></p>
+
+<h2>ハイスコア</h2>
+<ul id="highscores"></ul>
+
+<script>
+// 初期設定
+let successChance = 0.99; // 99%
+let score = 0;
+
+// ハイスコアをブラウザに保存する場合
+let highScores = JSON.parse(localStorage.getItem("highScores") || "{}");
+
+const chanceEl = document.getElementById("chance");
+const resultEl = document.getElementById("result");
+const btn = document.getElementById("btn");
+const highscoreEl = document.getElementById("highscores");
+const failMessageEl = document.getElementById("failMessage");
+
+// URLパラメータから失敗回数を取得して表示
+const params = new URLSearchParams(window.location.search);
+const failCount = params.get("fail");
+if(failCount){
+  failMessageEl.textContent = `${failCount}回目で失敗しました！`;
+}
+
+// ボタンクリック処理
+btn.addEventListener("click", () => {
+  let r = Math.random();
+  if(r < successChance){
+    // 成功
+    score++;
+    resultEl.textContent = "成功！ 連続成功: " + score;
+  } else {
+    // 失敗
+    updateHighScore();
+    // index.html に score を渡す
+    location.href = `index.html?fail=${score + 1}`; // +1でこの回で失敗
+  }
+});
+
+// キーボードで確率調整
+document.addEventListener("keydown", (e) => {
+  if(e.key === "ArrowUp"){
+    successChance += 0.01; // +1%
+    if(successChance > 1) successChance = 1;
+  }
+  if(e.key === "ArrowDown"){
+    successChance -= 0.01; // -1%
+    if(successChance < 0.01) successChance = 0.01; // 最低1%
+  }
+  chanceEl.textContent = (successChance*100).toFixed(0) + "%";
+});
+
+// ハイスコア更新（成功率ごとに整数パーセント単位で保存）
+function updateHighScore(){
+  let percentKey = Math.round(successChance * 100); // 整数%に変換
+  if(!highScores[percentKey] || score > highScores[percentKey]){
+    highScores[percentKey] = score;
+  }
+  // localStorage に保存
+  localStorage.setItem("highScores", JSON.stringify(highScores));
+  score = 0;
+  displayHighScores();
+}
+
+// 表示
+function displayHighScores(){
+  highscoreEl.innerHTML = "";
+  Object.keys(highScores).sort((a,b)=>a-b).forEach(key => {
+    let li = document.createElement("li");
+    li.textContent = `${key}% 成功確率 → ハイスコア: ${highScores[key]}`;
+    highscoreEl.appendChild(li);
+  });
+}
+
+// ページロード時に表示
+displayHighScores();
+
+</script>
+</body>
+</html>
