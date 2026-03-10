@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ジャンプ回避ゲーム</title>
+
+<style>
+body{
+margin:0;
+overflow:hidden;
+font-family:sans-serif;
+text-align:center;
+}
+
+#game{
+width:800px;
+height:400px;
+margin:auto;
+position:relative;
+border:3px solid black;
+background-size:cover;
+background-position:center;
+}
+
+#player{
+position:absolute;
+bottom:0;
+left:120px;
+width:120px;
+height:auto;
+}
+
+.enemy{
+position:absolute;
+bottom:0;
+width:120px;
+height:auto;
+}
+
+#ui{
+font-size:22px;
+margin:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+ステージ:<span id="stage">1</span>　
+回避:<span id="score">0</span>/20
+</div>
+
+<div id="game">
+<img id="player" src="me.png">
+</div>
+
+<script>
+
+let player=document.getElementById("player")
+let game=document.getElementById("game")
+
+let stage=1
+let score=0
+
+let jumping=false
+let vy=0
+let y=0
+
+let gravity=0.65
+let jumpPower=16
+
+let enemySpeed=6
+
+//敵出現間隔
+let spawnTime=1500
+let spawnLoop
+
+function setBackground(){
+
+if(stage==1) game.style.backgroundImage="url(earth.png)"
+if(stage==2) game.style.backgroundImage="url(universe.png)"
+if(stage>=3) game.style.backgroundImage="url(another-world.png)"
+
+}
+
+setBackground()
+
+//ジャンプ
+document.addEventListener("keydown",e=>{
+if(e.code=="Space" && !jumping){
+
+jumping=true
+vy=jumpPower
+
+}
+})
+
+//プレイヤー更新
+function updatePlayer(){
+
+if(jumping){
+
+y+=vy
+vy-=gravity
+
+if(y<=0){
+y=0
+jumping=false
+}
+
+}
+
+player.style.bottom=y+"px"
+
+}
+
+//敵生成
+function spawnEnemy(){
+
+let enemy=document.createElement("img")
+enemy.src="enemy.png"
+enemy.className="enemy"
+
+let x=800
+enemy.style.left=x+"px"
+
+game.appendChild(enemy)
+
+let move=setInterval(()=>{
+
+x-=enemySpeed
+enemy.style.left=x+"px"
+
+let py=y
+
+//当たり判定
+if(x<220 && x>80 && py<90){
+
+alert("ゲームオーバー！ステージ"+stage+"から再開")
+
+score=0
+document.getElementById("score").textContent=score
+
+enemy.remove()
+clearInterval(move)
+
+return
+
+}
+
+//通過
+if(x<-120){
+
+enemy.remove()
+clearInterval(move)
+
+score++
+
+document.getElementById("score").textContent=score
+
+if(score>=20){
+
+//ステージ3クリア判定
+if(stage>=3){
+
+let next=confirm("🎉 全ステージクリア！\n\nOK：タイトルへ戻る\nキャンセル：もう一周する")
+
+if(next){
+location.href="index.html"
+return
+}else{
+stage=1
+enemySpeed=6
+spawnTime=1500
+}
+
+}else{
+
+stage++
+enemySpeed+=1
+spawnTime+=200
+
+}
+
+//スポーン間隔更新
+clearInterval(spawnLoop)
+spawnLoop=setInterval(spawnEnemy,spawnTime)
+
+score=0
+
+document.getElementById("stage").textContent=stage
+document.getElementById("score").textContent=score
+
+setBackground()
+
+}
+
+}
+
+},20)
+
+}
+
+//敵スポーン開始
+spawnLoop=setInterval(spawnEnemy,spawnTime)
+
+//ゲームループ
+setInterval(updatePlayer,20)
+
+</script>
+
+<a href="index.html">
+<button>戻る</button>
+</a>
+
+</body>
+</html>

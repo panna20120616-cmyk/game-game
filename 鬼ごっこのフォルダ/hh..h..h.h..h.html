@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>入力</title> 
+
+<style>
+body{
+  font-family:sans-serif;
+}
+
+#editor{
+  width:80%;
+  height:200px;
+  border:2px solid black;
+  margin:20px auto;
+  padding:10px;
+  font-size:16px;
+  color:black;
+  background-color:white;
+}
+
+#result{
+  text-align:center;
+  font-size:20px;
+  margin-top:10px;
+}
+
+.section{
+  text-align:center;
+  margin:10px 0;
+}
+
+.color-button{
+  width:50px;
+  height:30px;
+  margin:3px;
+  border:1px solid black;
+  cursor:pointer;
+}
+.text-button{
+  width:100px;
+  height:30px;
+  margin:3px;
+  border:1px solid black;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 文字色ボタン -->
+<div class="section">
+  <div>文字色</div>
+  <button class="color-button" style="background:red;" onclick="changeTextColor('red')"></button>
+  <button class="color-button" style="background:blue;" onclick="changeTextColor('blue')"></button>
+  <button class="color-button" style="background:yellow;" onclick="changeTextColor('yellow')"></button>
+  <button class="color-button" style="background:white;" onclick="changeTextColor('white')"></button>
+  <button class="color-button" style="background:black;" onclick="changeTextColor('black')"></button>
+</div>
+
+<!-- 背景色ボタン -->
+<div class="section">
+  <div>背景色</div>
+  <button class="color-button" style="background:red;" onclick="changeBgColor('red')"></button>
+  <button class="color-button" style="background:blue;" onclick="changeBgColor('blue')"></button>
+  <button class="color-button" style="background:yellow;" onclick="changeBgColor('yellow')"></button>
+  <button class="color-button" style="background:white;" onclick="changeBgColor('white')"></button>
+  <button class="color-button" style="background:black;" onclick="changeBgColor('black')"></button>
+</div>
+
+<!-- 定型文ボタン -->
+<div class="section">
+  <div>定型文</div>
+  <button class="text-button" onclick="insertText('こんにちは！')">定型文1</button>
+  <button class="text-button" onclick="insertText('パンナです☆')">定型文2</button>
+  <button class="text-button" onclick="insertText('75^2=5625')">定型文3</button>
+  <button class="text-button" onclick="insertText('ヒントは定型文5')">定型文4</button>
+  <button class="text-button" onclick="insertText('半角でshift+数字')">定型文5</button>
+</div>
+
+<!-- 編集エリア -->
+<div id="editor" contenteditable="true">
+ここに文字を打ってみてね！
+</div>
+
+<!-- 結果表示 -->
+<div id="result">
+まだ入力していない！
+</div>
+
+<script>
+const editor = document.getElementById("editor");
+const result = document.getElementById("result");
+
+// 文字色変更
+function changeTextColor(color){
+  editor.style.color = color;
+}
+
+// 背景色変更
+function changeBgColor(color){
+  editor.style.backgroundColor = color;
+}
+
+// 定型文挿入
+function insertText(text){
+  editor.innerText = text;
+  editor.dispatchEvent(new Event('input')); // 結果表示を更新
+}
+
+// 入力監視
+editor.addEventListener("input", () => {
+  const text = editor.innerText.trim();
+
+  if(text.length > 0){
+    result.textContent = text + "と入力した！";
+  } else {
+    result.textContent = "まだ入力していない！";
+  }
+
+  // 特定文字入力でページ移動
+  if(text === "あなた" || text.includes("%")){
+    window.location.href = "index.html";
+  }
+});
+</script>
+
+</body>
+</html>

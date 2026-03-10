@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>10秒チャレンジゲーム</title>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    background-color: #ffffcc;
+    margin-top: 50px;
+  }
+  #startBtn, #stopBtn {
+    font-size: 20px;
+    padding: 10px 20px;
+    margin: 10px;
+  }
+  #message {
+    margin-top: 20px;
+    font-size: 24px;
+  }
+</style>
+</head>
+<body>
+  <h1>10秒チャレンジゲーム</h1>
+  <button id="startBtn">スタート</button>
+  <button id="stopBtn" disabled>ストップ</button>
+
+  <div id="message">「スタート」を押して10秒に近づけよう！</div>
+  <div id="bestScore">最高得点: ―</div>
+
+<script>
+let startTime = 0;
+let bestScore = null;
+
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const message = document.getElementById("message");
+const bestScoreDiv = document.getElementById("bestScore");
+
+startBtn.addEventListener("click", () => {
+  startTime = performance.now();
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  message.textContent = "タイミングを見て「ストップ」を押してね！";
+});
+
+stopBtn.addEventListener("click", () => {
+  const endTime = performance.now();
+  const elapsed = (endTime - startTime) / 1000; // 秒に変換
+  const diff = Math.abs(elapsed - 10); // 10秒との差
+  message.textContent = `あなたのタイム: ${elapsed.toFixed(2)}秒  (10秒との差: ${diff.toFixed(2)}秒)`;
+  
+  // 最高得点更新
+  if (bestScore === null || diff < bestScore) {
+    bestScore = diff;
+    bestScoreDiv.textContent = `最高得点: ${bestScore.toFixed(2)}秒差`;
+  }
+
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+});
+</script>
+
+<a href="index.html">
+    <button>戻る</button>
+</a>
+</body>
+</html>
