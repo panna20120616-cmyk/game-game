@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>避ける車ゲーム</title>
+
 <style>
 body {
   background: white;
@@ -46,68 +47,150 @@ body {
 }
 </style>
 </head>
+
 <body>
 
 <div id="game">
   <div class="car" id="car"></div>
 </div>
+
 <div id="score">Score: 0</div>
 
 <script>
+
 const car = document.getElementById('car');
 const game = document.getElementById('game');
 const scoreDisplay = document.getElementById('score');
 
-let carPos = 1; // 0=左,1=真ん中,2=右
+let carPos = 1; // 0=左 1=中央 2=右
 const lanePositions = [20, 120, 220];
-car.style.left = lanePositions[carPos] + 'px';
+car.style.left = lanePositions[carPos] + "px";
 
 let obstacles = [];
 let score = 0;
 
-// 車の移動
-document.addEventListener('keydown', (e) => {
-  if(e.key === 'ArrowLeft' && carPos > 0) carPos--;
-  if(e.key === 'ArrowRight' && carPos < 2) carPos++;
-  car.style.left = lanePositions[carPos] + 'px';
+
+/* ------------------
+   車の移動
+------------------ */
+
+// PCキー操作
+document.addEventListener("keydown", (e) => {
+
+  if(e.key === "ArrowLeft" && carPos > 0){
+    carPos--;
+  }
+
+  if(e.key === "ArrowRight" && carPos < 2){
+    carPos++;
+  }
+
+  car.style.left = lanePositions[carPos] + "px";
+
 });
 
-// 障害物生成
-function createObstacle() {
-  const obs = document.createElement('div');
-  obs.classList.add('obstacle');
+
+/* ------------------
+   スマホスワイプ操作
+------------------ */
+
+let touchStartX = 0;
+let touchEndX = 0;
+
+game.addEventListener("touchstart", (e)=>{
+  touchStartX = e.changedTouches[0].screenX;
+});
+
+game.addEventListener("touchend", (e)=>{
+
+  touchEndX = e.changedTouches[0].screenX;
+
+  const swipeDistance = touchEndX - touchStartX;
+
+  if(swipeDistance > 50 && carPos < 2){
+    // 右スワイプ
+    carPos++;
+  }
+
+  if(swipeDistance < -50 && carPos > 0){
+    // 左スワイプ
+    carPos--;
+  }
+
+  car.style.left = lanePositions[carPos] + "px";
+
+});
+
+
+/* ------------------
+   障害物生成
+------------------ */
+
+function createObstacle(){
+
+  const obs = document.createElement("div");
+  obs.classList.add("obstacle");
+
   const lane = Math.floor(Math.random() * 3);
-  obs.style.left = lanePositions[lane] + 'px';
+
+  obs.style.left = lanePositions[lane] + "px";
+
   game.appendChild(obs);
-  obstacles.push({el: obs, lane: lane, y: -60});
-}
 
-// ゲームループ
-function gameLoop() {
-  obstacles.forEach((obs, index) => {
-    obs.y += 5;
-    obs.el.style.top = obs.y + 'px';
-    
-    // 当たり判定
-    if(obs.y + 60 >= 400 && obs.lane === carPos) {
-      alert('ゲームオーバー! スコア: ' + score);
-      location.reload();
-    }
-    
-    // 画面外になったら削除
-    if(obs.y > 500) {
-      obs.el.remove();
-      obstacles.splice(index, 1);
-      score++;
-      scoreDisplay.textContent = 'Score: ' + score;
-    }
+  obstacles.push({
+    el: obs,
+    lane: lane,
+    y: -60
   });
+
 }
 
-// 障害物を一定間隔で作成
-setInterval(createObstacle, 1000);
-setInterval(gameLoop, 20);
+
+/* ------------------
+   ゲームループ
+------------------ */
+
+function gameLoop(){
+
+  obstacles.forEach((obs, index)=>{
+
+    obs.y += 5;
+
+    obs.el.style.top = obs.y + "px";
+
+
+    // 当たり判定
+    if(obs.y + 60 >= 400 && obs.lane === carPos){
+
+      alert("ゲームオーバー! スコア: " + score);
+      location.reload();
+
+    }
+
+
+    // 画面外
+    if(obs.y > 500){
+
+      obs.el.remove();
+      obstacles.splice(index,1);
+
+      score++;
+
+      scoreDisplay.textContent = "Score: " + score;
+
+    }
+
+  });
+
+}
+
+
+setInterval(createObstacle,1000);
+setInterval(gameLoop,20);
+
 </script>
+
+
 <a href="index.html">
 <button>戻る</button>
 </a>
