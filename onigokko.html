@@ -2,21 +2,26 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>15秒鬼ごっこ</title>
+<title>15秒鬼ごっこ（スマホ長押し対応）</title>
 
 <style>
 body {
     background: #ffffaa;
     text-align: center;
     font-family: sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
 #game {
-    width: 500px;
-    height: 300px;
+    width: 90vw;
+    max-width: 500px;
+    height: 50vw;
+    max-height: 300px;
     border: 3px solid black;
-    margin: auto;
+    margin: 20px auto;
     position: relative;
+    background-color: #ffeeaa;
 }
 
 #player, #enemy, #trap {
@@ -31,12 +36,32 @@ body {
 
 #timer {
     font-size: 30px;
+    margin: 10px 0;
 }
 
-#startBtn {
+#startBtn, #touchControls button, #resetBtn, #backBtn {
     font-size: 18px;
     padding: 10px 20px;
-    margin-bottom: 10px;
+    margin: 5px;
+}
+
+#touchControls {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+#touchControls button {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    -moz-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
 }
 </style>
 </head>
@@ -46,7 +71,8 @@ body {
 <h2>15秒鬼ごっこ</h2>
 
 <div id="intro" style="
-    width: 400px;
+    width: 90%;
+    max-width: 400px;
     margin: 20px auto;
     padding: 15px;
     border: 2px solid black;
@@ -58,7 +84,7 @@ body {
     <p>
         <b>15秒鬼ごっこ</b>は、15秒以内に赤い敵に触れるゲームです。<br>
         黄色の罠に触れるとスタート地点に戻されます。<br>
-        <b>操作方法:</b> WASDキーで移動、Shiftキーで速く動けます。<br>
+        <b>操作方法:</b> WASDキー または 画面下の矢印ボタンで移動、Shiftキーや💨ボタンで速く動けます。<br>
         最速で捕まえた時間がベストスコアとして保存されます。
     </p>
     <button onclick="document.getElementById('intro').style.display='none'">閉じる</button>
@@ -68,7 +94,7 @@ body {
 <p id="countdown"></p>
 <p id="timer">15</p>
 <p id="best">BEST: -</p>
-<button onclick="resetBest()">ベスト記録リセット</button>
+<button id="resetBtn" onclick="resetBest()">ベスト記録リセット</button>
 
 <div id="game">
     <div id="player"></div>
@@ -76,11 +102,22 @@ body {
     <div id="trap"></div>
 </div>
 
+<div id="touchControls">
+    <button data-dir="up">↑</button>
+    <button data-dir="left">←</button>
+    <button data-dir="down">↓</button>
+    <button data-dir="right">→</button>
+    <button id="boostBtn">💨</button>
+</div>
+
+<a href="index.html"><button id="backBtn">戻る</button></a>
+
 <script>
 let px = 100, py = 100;
 let ex, ey, tx, ty;
 let time = 15;
 
+const game = document.getElementById("game");
 const player = document.getElementById("player");
 const enemy = document.getElementById("enemy");
 const trap = document.getElementById("trap");
@@ -114,15 +151,19 @@ function startCountdown() {
 
 // ゲーム開始
 function startGame() {
-    // 敵の初期位置（プレイヤーから離す）
-    do { ex = Math.random() * 470; ey = Math.random() * 270; } 
-    while (Math.abs(px - ex) < 50 && Math.abs(py - ey) < 50);
+    // 敵の初期位置
+    do { 
+        ex = Math.random() * (game.clientWidth - enemy.offsetWidth);
+        ey = Math.random() * (game.clientHeight - enemy.offsetHeight);
+    } while (Math.abs(px - ex) < 50 && Math.abs(py - ey) < 50);
     enemy.style.left = ex + "px";
     enemy.style.top = ey + "px";
 
-    // 罠の初期位置（プレイヤーから離す）
-    do { tx = Math.random() * 470; ty = Math.random() * 270; } 
-    while (Math.abs(px - tx) < 80 && Math.abs(py - ty) < 80);
+    // 罠の初期位置
+    do { 
+        tx = Math.random() * (game.clientWidth - trap.offsetWidth);
+        ty = Math.random() * (game.clientHeight - trap.offsetHeight);
+    } while (Math.abs(px - tx) < 80 && Math.abs(py - ty) < 80);
     trap.style.left = tx + "px";
     trap.style.top = ty + "px";
 
@@ -139,13 +180,13 @@ function startGame() {
     // 敵AI
     enemyInterval = setInterval(function() {
         let enemySpeed = 2;
-        if (px > ex) ex -= enemySpeed;
-        if (px < ex) ex += enemySpeed;
-        if (py > ey) ey -= enemySpeed;
-        if (py < ey) ey += enemySpeed;
+        if (px > ex) ex += enemySpeed;
+        if (px < ex) ex -= enemySpeed;
+        if (py > ey) ey += enemySpeed;
+        if (py < ey) ey -= enemySpeed;
 
-        ex = Math.max(0, Math.min(ex, 470));
-        ey = Math.max(0, Math.min(ey, 270));
+        ex = Math.max(0, Math.min(ex, game.clientWidth - enemy.offsetWidth));
+        ey = Math.max(0, Math.min(ey, game.clientHeight - enemy.offsetHeight));
 
         enemy.style.left = ex + "px";
         enemy.style.top = ey + "px";
@@ -159,8 +200,8 @@ function startGame() {
         if (py > ty) ty += trapSpeed;
         if (py < ty) ty -= trapSpeed;
 
-        tx = Math.max(0, Math.min(tx, 470));
-        ty = Math.max(0, Math.min(ty, 270));
+        tx = Math.max(0, Math.min(tx, game.clientWidth - trap.offsetWidth));
+        ty = Math.max(0, Math.min(ty, game.clientHeight - trap.offsetHeight));
 
         trap.style.left = tx + "px";
         trap.style.top = ty + "px";
@@ -169,7 +210,7 @@ function startGame() {
 
 // キー入力（WASD + Shift）
 document.addEventListener("keydown", function(e) {
-    if (!timerInterval) return; // ゲーム開始前は無効
+    if (!timerInterval) return;
 
     let key = e.key.toLowerCase();
     let speed = 10;
@@ -180,8 +221,8 @@ document.addEventListener("keydown", function(e) {
     if (key == "a") px -= speed;
     if (key == "d") px += speed;
 
-    px = Math.max(0, Math.min(px, 470));
-    py = Math.max(0, Math.min(py, 270));
+    px = Math.max(0, Math.min(px, game.clientWidth - player.offsetWidth));
+    py = Math.max(0, Math.min(py, game.clientHeight - player.offsetHeight));
 
     player.style.left = px + "px";
     player.style.top = py + "px";
@@ -189,9 +230,49 @@ document.addEventListener("keydown", function(e) {
     check();
 });
 
+// タッチ操作（長押し連続移動）
+let touchSpeed = 10;
+let boost = false;
+let activeDirs = { up:false, down:false, left:false, right:false };
+
+const touchButtons = document.querySelectorAll("#touchControls button[data-dir]");
+touchButtons.forEach(btn => {
+    btn.addEventListener("touchstart", e => {
+        e.preventDefault(); // 長押しで選択されないように
+        activeDirs[btn.dataset.dir] = true;
+    });
+    btn.addEventListener("touchend", e => {
+        e.preventDefault();
+        activeDirs[btn.dataset.dir] = false;
+    });
+});
+
+// ブーストボタン
+document.getElementById("boostBtn").addEventListener("touchstart", e => { boost = true; e.preventDefault(); });
+document.getElementById("boostBtn").addEventListener("touchend", e => { boost = false; e.preventDefault(); });
+
+// ループで連続移動
+setInterval(() => {
+    if (!timerInterval) return;
+    let speed = touchSpeed;
+    if (boost) speed *= 1.5;
+
+    if (activeDirs.up) py -= speed;
+    if (activeDirs.down) py += speed;
+    if (activeDirs.left) px -= speed;
+    if (activeDirs.right) px += speed;
+
+    px = Math.max(0, Math.min(px, game.clientWidth - player.offsetWidth));
+    py = Math.max(0, Math.min(py, game.clientHeight - player.offsetHeight));
+
+    player.style.left = px + "px";
+    player.style.top = py + "px";
+
+    check();
+}, 50);
+
 // 当たり判定
 function check() {
-    // 敵に当たったらクリア
     if (Math.abs(px - ex) < 30 && Math.abs(py - ey) < 30) {
         let score = 15 - time;
         let best = localStorage.getItem("best");
@@ -200,7 +281,6 @@ function check() {
         location.reload();
     }
 
-    // 罠判定
     let trapRect = trap.getBoundingClientRect();
     let playerRect = player.getBoundingClientRect();
     if (
@@ -214,8 +294,10 @@ function check() {
         player.style.left = px + "px";
         player.style.top = py + "px";
 
-        do { tx = Math.random() * 470; ty = Math.random() * 270; } 
-        while (Math.abs(px - tx) < 80 && Math.abs(py - ty) < 80);
+        do { 
+            tx = Math.random() * (game.clientWidth - trap.offsetWidth);
+            ty = Math.random() * (game.clientHeight - trap.offsetHeight);
+        } while (Math.abs(px - tx) < 80 && Math.abs(py - ty) < 80);
         trap.style.left = tx + "px";
         trap.style.top = ty + "px";
     }
@@ -229,10 +311,6 @@ function resetBest() {
     }
 }
 </script>
-
-<a href="index.html">
-    <button>戻る</button>
-</a>
 
 </body>
 </html>
